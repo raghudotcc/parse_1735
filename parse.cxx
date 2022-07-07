@@ -17,7 +17,8 @@ struct AST {
 
 /*Utility function to split a string into a vector of strings based on the 
 delimiter. Also removes the leading and trailing whitespaces from the
-split tokens before returning. And removes empty/ws only tokens from the vector.
+split tokens before returning. And removes empty/whitespace only tokens 
+from the vector.
 params:
     text: the string to split
     delim: the delimiter to split on
