@@ -42,16 +42,16 @@ std::vector<std::string> split(const std::string& text,
         }
         tokens.push_back(text.substr(lastPos));
 
-        tokens.erase(std::remove_if(tokens.begin(), tokens.end(), 
-            [](const std::string& s) {
-                return s.empty() || std::all_of(s.begin(), s.end(), 
-                    [](char c) { return isspace(c); });
-            }), tokens.end());
-
         for (auto& token : tokens) {
             token.erase(0, token.find_first_not_of(" "));
             token.erase(token.find_last_not_of(" ") + 1);
+
+            if (token.empty()) {
+                tokens.erase(std::remove(tokens.begin(), tokens.end(), token), 
+                    tokens.end());
+            }
         }
+        
     }
     return tokens;
 }
