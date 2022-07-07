@@ -1,8 +1,9 @@
+
+#include <iostream>
 #include <vector>
 #include <map>
 #include <string>
 #include <sstream>
-#include <iostream>
 #include <algorithm>
 
 using Grammar = std::map<std::string, std::vector<std::vector<std::string>>>;
@@ -16,7 +17,7 @@ struct AST {
 
 /*Utility function to split a string into a vector of strings based on the 
 delimiter. Also removes the leading and trailing whitespaces from the
-split tokens before returning. And removes empty tokens from the vector.
+split tokens before returning. And removes empty/ws only tokens from the vector.
 params:
     text: the string to split
     delim: the delimiter to split on
@@ -41,7 +42,10 @@ std::vector<std::string> split(const std::string& text,
         tokens.push_back(text.substr(lastPos));
 
         tokens.erase(std::remove_if(tokens.begin(), tokens.end(), 
-            [](const std::string& s) { return s.empty(); }), tokens.end());
+            [](const std::string& s) {
+                return s.empty() || std::all_of(s.begin(), s.end(), 
+                    [](char c) { return isspace(c); });
+            }), tokens.end());
 
         for (auto& token : tokens) {
             token.erase(0, token.find_first_not_of(" "));
@@ -92,6 +96,7 @@ Grammar grammar(const std::string& description,
 int main() {
     auto G = grammar(R"(
         Exp => `Term [+-] Exp | Term
+        
         Term => Factor [*/] Term | Factor
         Factor => [0-9]+ | ( Exp ))"
         );
