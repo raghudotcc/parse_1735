@@ -8,11 +8,16 @@
 using Grammar = std::map<std::string, std::vector<std::vector<std::string>>>;
 using Sequence = std::vector<std::string>;
 
-struct AST {
-    std::string type;
-    std::vector<AST*> children;
-};
-
+/*
+Given a string, get all the position pairs of opening and closing braces
+in the string. If the braces are inside double quotes it means that 
+they are not part of the grammar syntax, they are a lexeme that needs to 
+be parsed, so ignore them.
+params:
+    text: the string to get the position pairs of braces from
+returns:
+    a vector of position pairs of matching brackes(curly and square)
+*/
 std::vector<std::pair<int, int>> get_matching_braces_pos(
     const std::string& text) {
     std::vector<std::pair<int, int>> result;
@@ -39,6 +44,18 @@ std::vector<std::pair<int, int>> get_matching_braces_pos(
     return result;
 }
 
+/*Check if the position of the delimiter passed to the 
+split function is between curly braces or square braces.
+We are supporting ebnf syntax. We cannot split a string
+between curly braces and square braces before the parsing 
+stage.
+params:
+    pos: current position of the delimiter in the string passed 
+         to the split function
+    text: string passed to the split function
+returns:
+    true if the position of the delimiter is between curly/square braces
+    false otherwise*/
 bool is_delim_in_braces(const int& pos, const std::string& text) {
     auto matching_braces_pos = get_matching_braces_pos(text);
     for (auto& pair : matching_braces_pos) {
@@ -78,7 +95,8 @@ std::vector<std::string> split(const std::string& text,
             }
             if (splittable) {
                 if (ebnf_last_pos != 0) {
-                    tokens.push_back(text.substr(ebnf_last_pos, pos - ebnf_last_pos));
+                    tokens.push_back(text.substr(ebnf_last_pos, 
+                        pos - ebnf_last_pos));
                     ebnf_last_pos = 0;
                 } else {
                     tokens.push_back(text.substr(last_pos, pos - last_pos));
@@ -87,9 +105,7 @@ std::vector<std::string> split(const std::string& text,
                 if (ebnf_last_pos == 0) {
                     ebnf_last_pos = last_pos;
                 }
-                std::cout << "Unsplittable: " << text << " :: " << ebnf_last_pos << std::endl;
             }
-            // move past the delimiter so we can find the next one
             last_pos = pos + delimiter.length(); 
         }
 
@@ -135,7 +151,8 @@ Grammar grammar(const std::string& description,
         auto rhs = parts[1];
         auto alternatives = split(rhs, "|");
         for (const auto& alternative : alternatives) {
-            G[lhs].push_back(split(alternative, " ", /*maxsplit=*/-1, /*ebnf=*/true));
+            G[lhs].push_back(split(alternative, " ", 
+                /*maxsplit=*/-1, /*ebnf=*/true));
         }
     }
     return G; 
