@@ -77,6 +77,8 @@ params:
     [maxsplit]: the maximum number of splits to perform. If maxsplit is not 
         specified, the string is split on every instance of the delimiter.
         which is denoted by -1 in the optional parameter.
+    [ebnf]: optional parameter to indicate if the string should be split
+        if the delimiter is inside curly braces or square braces.
 returns:
     a vector of strings split on the delimiter.*/
 std::vector<std::string> split(const std::string& text, 
