@@ -21,8 +21,8 @@ returns:
 std::vector<std::pair<int, int>> get_matching_braces_pos(
     const std::string& text) {
     std::vector<std::pair<int, int>> result;
-    int open_curly_braces_pos = 0;
-    int open_square_braces_pos = 0;
+    int open_curly_braces_pos = -1;
+    int open_square_braces_pos = -1;
     bool in_quote = false;
     for (int i = 0; i < text.size(); ++i) {
         if (text[i] == '"') {
@@ -32,13 +32,19 @@ std::vector<std::pair<int, int>> get_matching_braces_pos(
             open_curly_braces_pos = i;
         }
         if (text[i] == '}' && !in_quote) {
-            result.push_back({open_curly_braces_pos, i});
+            if (open_curly_braces_pos != -1) {
+                result.push_back({open_curly_braces_pos, i});
+            }
+            open_curly_braces_pos = -1;
         }
         if (text[i] == '[' && !in_quote) {
             open_square_braces_pos = i;
         }
         if (text[i] == ']' && !in_quote) {
-            result.push_back({open_square_braces_pos, i});
+            if (open_square_braces_pos != -1) {
+                result.push_back({open_square_braces_pos, i});
+            }
+            open_square_braces_pos = -1;
         }
     }
     return result;
@@ -163,17 +169,19 @@ Grammar grammar(const std::string& description,
 
 int main() {
     auto G = grammar(R"(
-        interface_viewport_stmt ::= interface_viewport [scoped_identifier {, scoped_identifier}] | interface_viewport
+        interface_viewport_stmt ::= interface_viewport "["scoped_identifier {, scoped_identifier}] | interface_viewport
     )"
         );
 
-    for (const auto& [lhs, rhs] : G) {
+    for (const auto& production : G) {
+        auto lhs = production.first;
+        auto rhs = production.second;
         std::cout << lhs << " ::= ";
-        for (const auto& production : rhs) {
-            for (const auto& symbol : production) {
+        for (const auto& rhs_tokens : rhs) {
+            for (const auto& symbol : rhs_tokens) {
                 std::cout << '"' << symbol << '"' << ", ";
             } 
-            if (production != rhs.back()) {
+            if (rhs_tokens != rhs.back()) {
                 std::cout << " | ";
             }
         }
