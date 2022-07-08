@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <vector>
 #include <map>
@@ -14,6 +13,42 @@ struct AST {
     std::vector<AST*> children;
 };
 
+std::vector<std::pair<int, int>> get_matching_braces_pos(
+    const std::string& text) {
+    std::vector<std::pair<int, int>> result;
+    int open_curly_braces_pos = 0;
+    int open_square_braces_pos = 0;
+    bool in_quote = false;
+    for (int i = 0; i < text.size(); ++i) {
+        if (text[i] == '"') {
+            in_quote = !in_quote;
+        }
+        if (text[i] == '{' && !in_quote) {
+            open_curly_braces_pos = i;
+        }
+        if (text[i] == '}' && !in_quote) {
+            result.push_back({open_curly_braces_pos, i});
+        }
+        if (text[i] == '[' && !in_quote) {
+            open_square_braces_pos = i;
+        }
+        if (text[i] == ']' && !in_quote) {
+            result.push_back({open_square_braces_pos, i});
+        }
+    }
+    return result;
+}
+
+bool is_delim_in_braces(const int& pos, const std::string& text) {
+    auto matching_braces_pos = get_matching_braces_pos(text);
+    for (auto& pair : matching_braces_pos) {
+        if (pair.first < pos && pos < pair.second) {
+            return true;
+        }
+    }
+    return false;
+}
+
 
 /*Utility function to split a string into a vector of strings based on the 
 delimiter. Also removes the leading and trailing whitespaces from the
@@ -28,19 +63,41 @@ params:
 returns:
     a vector of strings split on the delimiter.*/
 std::vector<std::string> split(const std::string& text, 
-    const std::string& delimiter, int maxsplit=-1) 
-{
-    std::vector<std::string> tokens;
+    const std::string& delimiter, int maxsplit=-1, bool ebnf=false) {
+   std::vector<std::string> tokens;
     size_t pos = 0;
-    size_t lastPos = 0;
-    { 
-        while (((pos = text.find(delimiter, lastPos)) != std::string::npos) && 
-                (maxsplit == -1 || tokens.size() < maxsplit)) {
-            tokens.push_back(text.substr(lastPos, pos - lastPos));
-            lastPos = pos + delimiter.length();
-
+    size_t last_pos = 0;
+    size_t ebnf_last_pos = 0;
+    bool splittable = true;
+    std::vector<std::pair<int, int>> ebnf_matching_braces_pos;
+    {   
+        while (((pos = text.find(delimiter, last_pos)) != std::string::npos) && 
+                (maxsplit == -1 || tokens.size() < maxsplit)) {   
+            if (ebnf)   {
+                splittable = !is_delim_in_braces(pos, text);
+            }
+            if (splittable) {
+                if (ebnf_last_pos != 0) {
+                    tokens.push_back(text.substr(ebnf_last_pos, pos - ebnf_last_pos));
+                    ebnf_last_pos = 0;
+                } else {
+                    tokens.push_back(text.substr(last_pos, pos - last_pos));
+                }
+            } else {
+                if (ebnf_last_pos == 0) {
+                    ebnf_last_pos = last_pos;
+                }
+                std::cout << "Unsplittable: " << text << " :: " << ebnf_last_pos << std::endl;
+            }
+            // move past the delimiter so we can find the next one
+            last_pos = pos + delimiter.length(); 
         }
-        tokens.push_back(text.substr(lastPos));
+
+        if (ebnf_last_pos != 0) {
+            tokens.push_back(text.substr(ebnf_last_pos));
+        } else {
+            tokens.push_back(text.substr(last_pos));
+        }
 
         for (auto& token : tokens) {
             token.erase(0, token.find_first_not_of(" "));
@@ -73,40 +130,32 @@ Grammar grammar(const std::string& description,
     std::string description_ = description;
     std::replace(description_.begin(), description_.end(), '\t', ' ');
     for (const auto& line : split(description_, "\n")) {
-        auto parts = split(line, " => ", 1);
+        auto parts = split(line, "::=", /*maxsplit=*/1, /*ebnf=*/false);
         auto lhs = parts[0];
         auto rhs = parts[1];
-        auto alternatives = split(rhs, " | ");
+        auto alternatives = split(rhs, "|");
         for (const auto& alternative : alternatives) {
-            G[lhs].push_back(split(alternative, " "));
+            G[lhs].push_back(split(alternative, " ", /*maxsplit=*/-1, /*ebnf=*/true));
         }
     }
-    return G;
+    return G; 
 }
-
-// AST parse(const std::string& start_symbol,
-//      const std::string& text, const Grammar& grammar) {
-
-//     auto parse_sequence = [](const Sequence sequence, 
-//         const std::string& text) {
-
-//     }
-// }
 
 
 int main() {
     auto G = grammar(R"(
-        Exp => `Term [+-] Exp | Term
-        
-        Term => Factor [*/] Term | Factor
-        Factor => [0-9]+ | ( Exp ))"
+        interface_viewport_stmt ::= interface_viewport [scoped_identifier {, scoped_identifier}] | interface_viewport
+    )"
         );
 
     for (const auto& [lhs, rhs] : G) {
-        std::cout << lhs << " => ";
+        std::cout << lhs << " ::= ";
         for (const auto& production : rhs) {
             for (const auto& symbol : production) {
-                std::cout << symbol << ", ";
+                std::cout << '"' << symbol << '"' << ", ";
+            } 
+            if (production != rhs.back()) {
+                std::cout << " | ";
             }
         }
         std::cout << std::endl;
