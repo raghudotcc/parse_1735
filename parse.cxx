@@ -11,8 +11,8 @@ using Sequence = std::vector<std::string>;
 /*
 Given a string, get all the position pairs of opening and closing braces
 in the string. If the braces are inside double quotes it means that 
-they are not part of the grammar syntax, they are a lexeme that needs to 
-be parsed, so ignore them.
+they are not part of the grammar syntax, they are a token(or a part of) 
+that needs to be parsed, so ignore them.
 params:
     text: the string to get the position pairs of braces from
 returns:
